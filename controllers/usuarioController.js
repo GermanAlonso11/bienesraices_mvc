@@ -1,5 +1,6 @@
 import { check, validationResult, ExpressValidator } from 'express-validator'
 import Usuario from '../models/Usuario.js'
+import { generarId } from '../helpers/tokens.js'
 
 const formLogin = (req, res) =>{
     res.render('auth/login', {
@@ -46,16 +47,38 @@ if (!resultado.isEmpty()) {
     })
 
 }
+    const {nombre, email, password} = req.body
 
-    // const existeUsuario = await Usuario.findOne({where: {email: req.body.emial}})
-    // console.log(existeUsuario)
-    // return;
+
+    //Verificar que el usuario no este duplicado
+    const existeUsuario = await Usuario.findOne({where: {email}})
+    if(existeUsuario){
+        return res.render('auth/register', {
+            pagina: 'Crear Cuenta',
+            errores: [{msg: 'Existe un usuario que ya esta registrado con ese email'}],
+            usuario:{
+                nombre: req.body.nombre,
+                email : req.body.email
+            }
+        })
+    }
+    
     //res.json(resultado.array());
     
-    const usuario = await Usuario.create(req.body);
-    res.json(usuario)
+    await Usuario.create({
+        nombre,
+        email,
+        password,
+        token: generarId()
+    });
+    
+    //Mostrar mensaje de confirmacion
+    res.render('templates/mensaje', {
+        pagina: 'Cuenta Creada Correctamente',
+        mensaje: 'Se ha enviado un email de confirmacion a su correo, haz click en el enlace'
+    })
 
-    //console.log(req.body)
+
 }
 
 const formRecuperarPassword = (req, res) =>{
