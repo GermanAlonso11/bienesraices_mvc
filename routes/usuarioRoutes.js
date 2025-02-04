@@ -1,5 +1,5 @@
 import express from "express";
-import { formLogin, formRegister, formRecuperarPassword, registrar, confirmar } from '../controllers/usuarioController.js';
+import { formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword } from '../controllers/usuarioController.js';
 
 const router = express.Router();
 
@@ -9,6 +9,7 @@ router.get('/login', formLogin);
 router.get('/registro', formRegister)
 router.post('/registro', registrar)
 
+//olvide-password
 router.get('/recuperarpassword', formRecuperarPassword)
 
 // router.post('/nosotros', (req, res) =>{
@@ -17,5 +18,8 @@ router.get('/recuperarpassword', formRecuperarPassword)
 
 //Confirmar cuenta
 router.get('/confirmar/:token', confirmar)
+
+//Reset password
+router.post('/recuperarpassword', resetPassword)
 
 export default router

@@ -124,13 +124,53 @@ const confirmar = async(req, res) => {
 
 }
 
+//formularioOlvidePassword
 const formRecuperarPassword = (req, res) =>{
     res.render('auth/recuperarpassword', {
-        pagina: 'Recupera tu acceso'
+        pagina: 'Recupera tu acceso',
+        csrfToken : req.csrfToken()
     })
+}
+
+const resetPassword = async(req, res) =>{
+    
+    //Validacion email
+    await check('email').isEmail().withMessage('Email obligatorio').run(req)
+        
+    //Verificar que el resultado este vacio
+    let resultado = validationResult(req)
+    // return res.json(resultado.array())
+    
+    if (!resultado.isEmpty()) {
+        //Errores
+        return res.render('auth/recuperarpassword', {
+            pagina: 'Recupera tu acceso',
+            csrfToken : req.csrfToken(),
+            errores: resultado.array()
+        })
+    
+    }
+
+    //Buscar el usuario
+    const {email} = req.body
+    const usuario = await Usuario.findOne({where: {email}})
+
+    console.log(usuario)
+
+    if(!usuario){
+        return res.render('auth/recuperarpassword', {
+            pagina: 'Recupera tu acceso',
+            csrfToken : req.csrfToken(),
+            errores: [{msg: 'El email no pertenece a ningun usuario existente'}]
+        })
+    }
+
+    //Generar un token y enviar email
+    
+
 }
 
 
 export {
-    formLogin, formRegister, formRecuperarPassword, registrar, confirmar
+    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword
 }
