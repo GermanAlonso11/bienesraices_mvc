@@ -1,7 +1,8 @@
 import { check, validationResult, ExpressValidator } from 'express-validator'
+import bcrypt from 'bcrypt'
 import Usuario from '../models/Usuario.js'
 import { generarId } from '../helpers/tokens.js'
-import {emailRegistro} from '../helpers/emails.js'
+import {emailRegistro, emailOlvidePassword} from '../helpers/emails.js'
 
 const formLogin = (req, res) =>{
     res.render('auth/login', {
@@ -166,11 +167,83 @@ const resetPassword = async(req, res) =>{
     }
 
     //Generar un token y enviar email
+    usuario.token = generarId();
+    await usuario.save();
+
+    //Enviar un email
+    emailOlvidePassword({
+        email: usuario.email,
+        nombre: usuario.nombre,
+        token: usuario.token
+    })
+
+    //Renderizar un mensaje
+    res.render('templates/mensaje', {
+        pagina: 'Restablece tu password',
+        mensaje: 'Se ha enviado un email con las instrucciones'
+    })
+}
+
+const comprobarToken = async (req, res, ) =>{
+    const {token} = req.params;
+    const usuario = await Usuario.findOne({where: {token}})
     
+    console.log(usuario)
+    
+    if(!usuario){
+        return res.render('./auth/confirmarCuenta', {
+            pagina: 'Restablece tu Password',
+            mensaje: 'Hubo un error al validar tu informacion, intenta de nuevo',
+            error: true
+        })
+    }
+
+    //Mostrar form para modificar el password
+    res.render('auth/reset-password', {
+        pagina: 'Restablece tu password',
+        csrfToken: req.csrfToken()
+    })
+}
+
+const nuevoPassword = async (req, res) =>{
+    //Validar pass
+    await check('password').isLength({min: 6}).withMessage('La contraseña debe ser de al menos 6 caracteres').run(req)
+    
+    //Verificar que el resultado este vacio
+    let resultado = validationResult(req)
+    // return res.json(resultado.array())
+
+    if (!resultado.isEmpty()) {
+        //Errores
+        return res.render('auth/reset-password', {
+            pagina: 'Restablece tu password',
+            csrfToken : req.csrfToken(),
+            errores: resultado.array()
+            
+        })
+
+    }
+
+    const {token} = req.params
+    const {password} = req.body;
+
+    //Identificar quien hace el cambio
+    const usuario = await Usuario.findOne({where: {token}});
+
+    //Hashear el nuevo pass
+    const salt = await bcrypt.genSalt(10)
+    usuario.password = await bcrypt.hash(password, salt);
+    usuario.token = null;
+
+    await usuario.save()
+    
+    res.render('auth/confirmarCuenta', {
+        pagina: 'Password Restablecido',
+        mensaje: 'El password se guardo correctamente'
+    })
 
 }
 
-
 export {
-    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword
+    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword, comprobarToken, nuevoPassword
 }
