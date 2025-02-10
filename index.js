@@ -1,6 +1,7 @@
 //const express = require('express') //CommonJs
 import express from 'express' //ES Modules
 import usuarioRoutes from './routes/usuarioRoutes.js'
+import propiedadesRoutes from './routes/propiedadesRoutes.js'
 import db from './config/db.js'
 import csrf from 'csurf'
 import cookieParser from 'cookie-parser'
@@ -37,6 +38,7 @@ app.use(express.static('public'))
 
 //Routing
 app.use('/auth', usuarioRoutes)
+app.use('/', propiedadesRoutes)
 
 //Definir un puerto y arrancar el proyecto
 const port = process.env.PORT || 3000;
