@@ -1,14 +1,79 @@
 import { check, validationResult, ExpressValidator } from 'express-validator'
 import bcrypt from 'bcrypt'
 import Usuario from '../models/Usuario.js'
-import { generarId } from '../helpers/tokens.js'
+import {generarJWT, generarId } from '../helpers/tokens.js'
 import {emailRegistro, emailOlvidePassword} from '../helpers/emails.js'
 
 const formLogin = (req, res) =>{
     res.render('auth/login', {
         pagina: 'Iniciar Sesion',
-        autenticado: false
+        // autenticado: false,
+        csrfToken : req.csrfToken()
     })
+}
+
+const autenticar = async(req, res) =>{
+    //Validacion
+    //Validacion email
+    await check('email').isEmail().withMessage('Email obligatorio').run(req)
+
+    //Validacion password
+    await check('password').notEmpty().withMessage('La contraseña es obligatoria').run(req)
+
+    let resultado = validationResult(req)
+
+if (!resultado.isEmpty()) {
+    //Errores
+    return res.render('auth/login', {
+        pagina: 'Iniciar sesion',
+        csrfToken : req.csrfToken(),
+        errores: resultado.array()
+        
+    })
+}
+
+//Comprobar si el usuario existe
+const {email, password} = req.body
+
+const usuario = await Usuario.findOne({where: {email}})
+if(!usuario){
+    return res.render('auth/login', {
+        pagina: 'Iniciar sesion',
+        csrfToken : req.csrfToken(),
+        errores: [{msg: 'El usuario no existe'}]
+        
+    })
+}
+
+//COmprobar si el usuario esta confirmado
+if(!usuario.confirmado){
+    return res.render('auth/login', {
+        pagina: 'Iniciar sesion',
+        csrfToken : req.csrfToken(),
+        errores: [{msg: 'Tu cuenta no esta confirmada'}]
+        
+    })
+}
+
+//Revisar el password
+if(!usuario.verificarPassword(password)){
+    return res.render('auth/login', {
+        pagina: 'Iniciar sesion',
+        csrfToken : req.csrfToken(),
+        errores: [{msg: 'La contraseña es incorrecta'}]
+        
+    })
+}
+
+//Autenticar al usuario
+const token = generarJWT({id: usuario.id, nombre: usuario.nombre})
+console.log(token)
+
+//Almacenar en cookie
+return res.cookie('_token', token, {
+    httpOnly: true
+    //secure: true,
+}).redirect('/mis-propiedades')
 }
 
 const formRegister = (req, res) =>{
@@ -245,5 +310,5 @@ const nuevoPassword = async (req, res) =>{
 }
 
 export {
-    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword, comprobarToken, nuevoPassword
+    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword, comprobarToken, nuevoPassword, autenticar
 }
