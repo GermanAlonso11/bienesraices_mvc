@@ -1,9 +1,8 @@
 import {exit} from 'node:process'
 import categorias from './categorias.js'
-import Categoria from '../models/Categoria.js'
 import precios from './precios.js'
-import Precio from '../models/Precio.js'
 import db from "../config/db.js";
+import {Categoria, Precio } from '../models/index.js'
 
 const importarDatos = async() =>{
     try 
@@ -34,3 +33,22 @@ if(process.argv[2]=== "-i"){
     importarDatos();
 }
 
+const eliminarDatos = async () => {
+    try {
+        await Promise.all([
+            Propiedad.destroy({ where: {}, force: true }),
+            Precio.destroy({where: {}, truncate: true}),
+            Categoria.destroy({where: {}, truncate: true})
+
+        ])
+        console.log("Datos eliminados correctamente")
+        exit()
+    } catch (error) {
+        console.log(error)
+    }
+}
+
+
+if(process.argv[2]=== "-e"){
+    eliminarDatos();
+}
