@@ -2,7 +2,8 @@ import {exit} from 'node:process'
 import categorias from './categorias.js'
 import precios from './precios.js'
 import db from "../config/db.js";
-import {Categoria, Precio } from '../models/index.js'
+import usuarios from './usuarios.js'
+import {Categoria, Precio, Propiedad, Usuario } from '../models/index.js'
 
 const importarDatos = async() =>{
     try 
@@ -16,7 +17,8 @@ const importarDatos = async() =>{
         //Insertar los datos
         await Promise.all([
             Categoria.bulkCreate(categorias),
-            Precio.bulkCreate(precios)
+            Precio.bulkCreate(precios),
+            Usuario.bulkCreate(usuarios)
         ])
 
 
@@ -33,20 +35,42 @@ if(process.argv[2]=== "-i"){
     importarDatos();
 }
 
+// const eliminarDatos = async () => {
+//     try {
+//         await Promise.all([
+//             Propiedad.destroy({ where: {}, truncate: true }),
+//             Precio.destroy({where: {}, truncate: true}),
+//             Categoria.destroy({where: {}, truncate: true})
+
+//         ])
+//         console.log("Datos eliminados correctamente")
+//         exit()
+//     } catch (error) {
+//         console.log(error)
+//     }
+// }
+
 const eliminarDatos = async () => {
     try {
-        await Promise.all([
-            Propiedad.destroy({ where: {}, force: true }),
-            Precio.destroy({where: {}, truncate: true}),
-            Categoria.destroy({where: {}, truncate: true})
+        // Deshabilitar restricciones de clave foránea
+        await db.query("SET FOREIGN_KEY_CHECKS = 0", { raw: true });
 
-        ])
-        console.log("Datos eliminados correctamente")
-        exit()
+        // Eliminar los datos en el orden correcto
+        await Propiedad.destroy({ where: {}, truncate: true });
+        await Precio.destroy({ where: {}, truncate: true });
+        await Categoria.destroy({ where: {}, truncate: true });
+
+        // Volver a habilitar restricciones de clave foránea
+        await db.query("SET FOREIGN_KEY_CHECKS = 1", { raw: true });
+
+        console.log("Datos eliminados correctamente");
+        exit();
     } catch (error) {
-        console.log(error)
+        console.log(error);
+        process.exit(1);
     }
-}
+};
+
 
 
 if(process.argv[2]=== "-e"){
