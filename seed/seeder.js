@@ -50,26 +50,43 @@ if(process.argv[2]=== "-i"){
 //     }
 // }
 
+// const eliminarDatos = async () => {
+//     try {
+//         // Deshabilitar restricciones de clave foránea
+//         await db.query("SET FOREIGN_KEY_CHECKS = 0", { raw: true });
+
+//         // Eliminar los datos en el orden correcto
+//         await Propiedad.destroy({ where: {}, TRUNCATE: true });
+//         await Precio.destroy({ where: {}, TRUNCATE: true });
+//         await Categoria.destroy({ where: {}, TRUNCATE: true });
+
+//         // Volver a habilitar restricciones de clave foránea
+//         await db.query("SET FOREIGN_KEY_CHECKS = 1", { raw: true });
+
+//         console.log("Datos eliminados correctamente");
+//         exit(0);
+//     } catch (error) {
+//         console.log(error);
+//         process.exit(1);
+//     }
+// };
+
 const eliminarDatos = async () => {
     try {
-        // Deshabilitar restricciones de clave foránea
-        await db.query("SET FOREIGN_KEY_CHECKS = 0", { raw: true });
-
-        // Eliminar los datos en el orden correcto
-        await Propiedad.destroy({ where: {}, truncate: true });
-        await Precio.destroy({ where: {}, truncate: true });
-        await Categoria.destroy({ where: {}, truncate: true });
-
-        // Volver a habilitar restricciones de clave foránea
-        await db.query("SET FOREIGN_KEY_CHECKS = 1", { raw: true });
-
-        console.log("Datos eliminados correctamente");
-        exit();
-    } catch (error) {
-        console.log(error);
-        process.exit(1);
-    }
-};
+    // usando promise 
+   await Promise.all([ 
+   Categoria.destroy({where: {}, TRUNCATE: true}), 
+   Precio.destroy({where: {}, TRUNCATE: true}), 
+   db.sync({force:true}) 
+   ]) 
+   console.log('datos eliminados')
+    exit() 
+   }
+    catch (error) {
+    console.log(error) 
+   exit(1)
+    } 
+   }
 
 
 

@@ -6,8 +6,11 @@ import Usuario from './Usuario.js'
 //Precio.hasOne(Propiedad)
 
 Propiedad.belongsTo(Precio)
-Propiedad.belongsTo(Categoria, {foreignKey: 'FK_categoriaId'})
-Propiedad.belongsTo(Usuario, {foreignKey: 'FK_usuarioId'})
+Propiedad.belongsTo(Categoria, {foreignKey: 'categoriaId'})
+Propiedad.belongsTo(Usuario, {foreignKey: 'usuarioId'})
+
+// Propiedad.belongsTo(Categoria)
+// Propiedad.belongsTo(Usuario)
 
 export { 
     Propiedad, 
