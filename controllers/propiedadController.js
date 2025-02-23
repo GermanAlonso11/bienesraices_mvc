@@ -1,5 +1,6 @@
 // import Precio from "../models/Precio.js"
 // import Categoria from "../models/Categoria.js"
+import {unlink} from 'node:fs/promises'
 import {Precio, Categoria, Propiedad} from '../models/index.js'
 import { validationResult } from "express-validator"
 
@@ -9,12 +10,22 @@ const admin = async (req, res) =>{
     const propiedades = await Propiedad.findAll({
         where: {
             usuarioId: id
-        }
+        },
+        include: [
+            {
+                model: Categoria, as: 'categoria'
+                
+            },
+            {
+                model: Precio, as: 'precio'
+            }
+        ]
     })
 
     res.render('propiedades/admin', {
         pagina: 'Mis propiedades',
-        propiedades
+        propiedades,
+        csrfToken: req.csrfToken()
     })
 }
 
@@ -151,7 +162,129 @@ const almacenarImagen = async (req, res, next) =>{
     }
 }
 
+const editar = async (req, res) => {
+    //Consultar modelo de precio y categorias
+    const {id } = req.params
+
+    //Validar que la propiedad exista
+    const propiedad = await Propiedad.findByPk(id)
+
+    if(!propiedad){
+        return res.redirect('/mis-propiedades')
+    }
+
+    //Revisar que el creador de la propiedad pueda entrar a la propiedad, no otro
+    if(propiedad.usuarioId.toString() !== req.usuario.id.toString()){
+        return res.redirect('/mis-propiedades')
+    }
+
+    const [categorias, precios] = await Promise.all([
+        Categoria.findAll(),
+        Precio.findAll()
+    ])
+
+    
+    res.render('propiedades/editar', {
+        pagina: `Editar propiedad: ${propiedad.titulo}`,
+        csrfToken: req.csrfToken(),
+        categorias,
+        precios,
+        datos: propiedad
+    })
+}
+
+const guardarCambios = async (req, res) => {
+
+    //Validacion
+    let resultado = validationResult(req)
+
+    if(!resultado.isEmpty()){
+
+        const [categorias, precios] = await Promise.all([
+            Categoria.findAll(),
+            Precio.findAll()
+        ])
+ 
+        
+        return res.render('propiedades/editar', {
+            pagina: 'Editar propiedad',
+            csrfToken: req.csrfToken(),
+            categorias,
+            precios,
+            errores: resultado.array(),
+            datos: req.body
+        })
+
+    }
+
+    //Verificar validacion
+    const {id } = req.params
+
+    //Validar que la propiedad exista
+    const propiedad = await Propiedad.findByPk(id)
+
+    if(!propiedad){
+        return res.redirect('/mis-propiedades')
+    }
+
+    //Revisar que el creador de la propiedad pueda entrar a la propiedad, no otro
+    if(propiedad.usuarioId.toString() !== req.usuario.id.toString()){
+        return res.redirect('/mis-propiedades')
+    }
+
+    //Reescribir el obj y actualizarlo
+    try {
+        const {titulo, descripcion, categoria: categoriaId, precio: precioId, habitaciones, estacionamiento, wc, calle, lat, lng} = req.body
+        propiedad.set({
+            titulo,
+            descripcion,
+            habitaciones,
+            estacionamiento,
+            wc,
+            calle,
+            lat,
+            lng,
+            precioId,
+            categoriaId
+        })
+        await propiedad.save();
+        res.redirect('/mis-propiedades')
+
+    } catch (error) {
+        
+    }
+
+}
+
+const eliminar = async (req, res) => {
+        //Verificar validacion
+        const {id } = req.params
+
+        //Validar que la propiedad exista
+        const propiedad = await Propiedad.findByPk(id)
+    
+        if(!propiedad){
+            return res.redirect('/mis-propiedades')
+        }
+    
+        //Revisar que el creador de la propiedad pueda entrar a la propiedad, no otro
+        if(propiedad.usuarioId.toString() !== req.usuario.id.toString()){
+            return res.redirect('/mis-propiedades')
+        }
+
+        //Eliminar imagen
+        await unlink(`public/uploads/${propiedad.imagen}`)
+
+        
+
+        //Eliminar la propiedad
+        await propiedad.destroy()
+        res.redirect('/mis-propiedades')
+
+
+}
+
 
 export {
-    admin, crear, guardar, agregarImagen, almacenarImagen
+    admin, crear, guardar, agregarImagen, almacenarImagen, editar, guardarCambios, eliminar
 }
