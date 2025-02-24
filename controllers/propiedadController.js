@@ -5,28 +5,61 @@ import {Precio, Categoria, Propiedad} from '../models/index.js'
 import { validationResult } from "express-validator"
 
 const admin = async (req, res) =>{
-    const { id } = req.usuario
+    //Leer query string
+    const {pagina: paginaActual} = req.query
 
-    const propiedades = await Propiedad.findAll({
-        where: {
-            usuarioId: id
-        },
-        include: [
-            {
-                model: Categoria, as: 'categoria'
-                
+    const expresion = /^[0-9]$/
+
+    if(!expresion.test(paginaActual)){
+        return res.redirect('/mis-propiedades?pagina=1')
+    }
+
+    try {
+        const { id } = req.usuario
+
+        //Limites y offset para el paginador
+        const limit = 10
+        const offset = ((paginaActual * limit) - limit)
+
+    const [propiedades, total] = await Promise.all([
+         Propiedad.findAll({
+            limit,
+            offset,
+            where: {
+                usuarioId: id
             },
-            {
-                model: Precio, as: 'precio'
+            include: [
+                {
+                    model: Categoria, as: 'categoria'
+                    
+                },
+                {
+                    model: Precio, as: 'precio'
+                }
+            ]
+        }),
+        Propiedad.count({
+            where: {
+                usuarioId: id
             }
-        ]
-    })
+        })
+    ])
 
     res.render('propiedades/admin', {
         pagina: 'Mis propiedades',
         propiedades,
-        csrfToken: req.csrfToken()
+        csrfToken: req.csrfToken(),
+        paginas: Math.ceil(total/limit),
+        paginaActual,
+        total,
+        offset,
+        limit
     })
+
+
+    } catch (error) {
+        console.log(error)
+    }
 }
 
 //Form para crear una nueva propiedad
