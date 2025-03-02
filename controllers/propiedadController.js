@@ -1,8 +1,9 @@
 // import Precio from "../models/Precio.js"
 // import Categoria from "../models/Categoria.js"
 import {unlink} from 'node:fs/promises'
-import {Precio, Categoria, Propiedad} from '../models/index.js'
+import {Precio, Categoria, Propiedad, Mensaje, Usuario} from '../models/index.js'
 import { validationResult } from "express-validator"
+import { esVendedor, formatearFecha } from '../helpers/index.js'
 
 const admin = async (req, res) =>{
     //Leer query string
@@ -35,6 +36,9 @@ const admin = async (req, res) =>{
                 },
                 {
                     model: Precio, as: 'precio'
+                },
+                {
+                    model: Mensaje, as: 'mensajes'
                 }
             ]
         }),
@@ -320,7 +324,8 @@ const eliminar = async (req, res) => {
 //Mostrar propiedad
     const mostrarPropiedad = async (req, res) => {
         const {id} = req.params
-
+        //console.log(req.usuario)
+        
         //Comprobar que la propiedad exista
         const propiedad = await Propiedad.findByPk(id, {
             include: [
@@ -337,13 +342,102 @@ const eliminar = async (req, res) => {
             return res.redirect('/404')
         }
 
+
         res.render('propiedades/mostrar', {
             propiedad,
-            pagina: propiedad.titulo
+            pagina: propiedad.titulo,
+            csrfToken: req.csrfToken(),
+            usuario: req.usuario,
+            esVendedor: esVendedor(req.usuario?.id, propiedad.usuarioId)
+        })
+    }
+
+    const enviarMensaje = async (req, res) =>{
+        const {id} = req.params
+        
+        //Comprobar que la propiedad exista
+        const propiedad = await Propiedad.findByPk(id, {
+            include: [
+                {
+                    model: Precio, as: 'precio'
+                },
+                {
+                    model: Categoria, as: 'categoria'
+                }
+            ]
+        })
+
+        if(!propiedad){
+            return res.redirect('/404')
+        }
+
+        //Renderizar los errores
+        let resultado = validationResult(req)
+
+    if(!resultado.isEmpty()){
+        return res.render('propiedades/mostrar', {
+            propiedad,
+            pagina: propiedad.titulo,
+            csrfToken: req.csrfToken(),
+            usuario: req.usuario,
+            esVendedor: esVendedor(req.usuario?.id, propiedad.usuarioId),
+            errores: resultado.array()
+        })
+        
+    }
+
+    const {mensaje} = req.body
+    const {id: propiedadId } = req.params
+    const {id: usuarioId} = req.usuario
+    //Almacenar mensaje
+    await Mensaje.create({
+        mensaje,
+        propiedadId,
+        usuarioId
+    })
+
+
+        res.redirect('/')
+    }
+
+    //Leer mensajes recibidos
+
+    const verMensajes = async (req, res) => {
+        //Verificar validacion
+        const {id } = req.params
+
+        //Validar que la propiedad exista
+        const propiedad = await Propiedad.findByPk(id, {
+            include: [
+                {
+                    model: Mensaje, as: 'mensajes',
+                    include:[
+                        {
+                            model: Usuario.scope('eliminarPassword'), as: 'usuario'
+                        }
+                    ]
+                }
+            ]
+        })
+    
+        if(!propiedad){
+            return res.redirect('/mis-propiedades')
+        }
+    
+        //Revisar que el creador de la propiedad pueda entrar a la propiedad, no otro
+        if(propiedad.usuarioId.toString() !== req.usuario.id.toString()){
+            return res.redirect('/mis-propiedades')
+        }
+
+        res.render('propiedades/mensajes', {
+            pagina: 'Mensajes',
+            mensajes: propiedad.mensajes,
+            formatearFecha
         })
     }
 
 
+
 export {
-    admin, crear, guardar, agregarImagen, almacenarImagen, editar, guardarCambios, eliminar, mostrarPropiedad
+    admin, crear, guardar, agregarImagen, almacenarImagen, editar, guardarCambios, eliminar, mostrarPropiedad, enviarMensaje, verMensajes
 }
