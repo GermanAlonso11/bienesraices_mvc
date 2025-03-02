@@ -293,6 +293,36 @@ const guardarCambios = async (req, res) => {
 
 }
 
+const cambiarEstado = async (req, res) =>{
+
+
+    //Verificar validacion
+    const {id } = req.params
+
+    //Validar que la propiedad exista
+    const propiedad = await Propiedad.findByPk(id)
+
+    if(!propiedad){
+        return res.redirect('/mis-propiedades')
+    }
+
+    //Revisar que el creador de la propiedad pueda entrar a la propiedad, no otro
+    if(propiedad.usuarioId.toString() !== req.usuario.id.toString()){
+        return res.redirect('/mis-propiedades')
+    }
+
+
+    //Actualizar
+    
+        propiedad.publicado = !propiedad.publicado
+        await propiedad.save()
+
+        res.json({
+            resultado: 'ok'
+        })
+    
+}
+
 const eliminar = async (req, res) => {
         //Verificar validacion
         const {id } = req.params
@@ -338,7 +368,7 @@ const eliminar = async (req, res) => {
             ]
         })
 
-        if(!propiedad){
+        if(!propiedad || !propiedad.publicado){
             return res.redirect('/404')
         }
 
@@ -439,5 +469,5 @@ const eliminar = async (req, res) => {
 
 
 export {
-    admin, crear, guardar, agregarImagen, almacenarImagen, editar, guardarCambios, eliminar, mostrarPropiedad, enviarMensaje, verMensajes
+    admin, crear, guardar, agregarImagen, almacenarImagen, editar, guardarCambios, cambiarEstado, eliminar, mostrarPropiedad, enviarMensaje, verMensajes, 
 }

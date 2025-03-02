@@ -76,6 +76,10 @@ return res.cookie('_token', token, {
 }).redirect('/mis-propiedades')
 }
 
+const cerrarSesion = (req, res) =>{
+    return res.clearCookie('_token').status(200).redirect('/auth/login')
+}
+
 const formRegister = (req, res) =>{
     //console.log(req.csrfToken())
 
@@ -310,5 +314,5 @@ const nuevoPassword = async (req, res) =>{
 }
 
 export {
-    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword, comprobarToken, nuevoPassword, autenticar
+    formLogin, formRegister, formRecuperarPassword, registrar, confirmar, resetPassword, comprobarToken, nuevoPassword, autenticar, cerrarSesion
 }
