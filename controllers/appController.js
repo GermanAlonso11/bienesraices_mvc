@@ -78,7 +78,6 @@ const categoria = async (req, res) => {
 const noEncontrado = (req, res) =>{
     res.render('404', {
         pagina: `No Encontrado`,
-        propiedades,
         csrfToken: req.csrfToken()
     })
 }
